@@ -1,0 +1,25 @@
+# Parent ("root") Application of the app-of-apps pattern.
+# Apply once by hand:  oc apply -f bootstrap/root-app.yaml
+# It renders every manifest under apps/ (child Application CRs) from your Git repo.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/luisevm/test-gitea-acm.git     # <-- CHANGE: <repo> = repository name under luisevm
+    targetRevision: main                               # <-- CHANGE if needed
+    path: apps
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openshift-gitops        # child Application CRs live in the Argo CD namespace
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

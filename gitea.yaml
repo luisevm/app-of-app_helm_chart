@@ -1,0 +1,37 @@
+# Child Application: Validated Patterns Gitea chart.
+# Mirrors the Application the patterns-operator builds in newArgoGiteaApplication()
+# (validatedpatterns/patterns-operator, internal/controller/argo.go).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitea-in-cluster
+  namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://charts.validatedpatterns.io/   # Helm repo, NOT .../charts/gitea
+    chart: gitea
+    targetRevision: 0.0.*                           # operator default; pin (e.g. 0.0.4) for reproducibility
+    helm:
+      # The chart's Route hardcodes service "gitea-in-cluster-http", so the
+      # release name MUST be gitea-in-cluster (fullname = release name when it contains "gitea").
+      releaseName: gitea-in-cluster
+      parameters:
+        - name: gitea.admin.existingSecret
+          value: gitea-admin-secret
+        # Default Route host: <route>-<namespace>.<apps domain>
+        - name: gitea.console.href
+          value: https://gitea-route-vp-gitea.apps.cluster-6fllz.dyn.redhatworkshops.io   # <-- CHANGE
+        - name: gitea.config.server.ROOT_URL
+          value: https://gitea-route-vp-gitea.apps.cluster-6fllz.dyn.redhatworkshops.io   # <-- CHANGE
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vp-gitea            # chart hardcodes vp-gitea for Namespace/Role/RoleBinding/ConsoleLink
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    retry:
+      limit: 20
