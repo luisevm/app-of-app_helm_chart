@@ -19,13 +19,43 @@ spec:
       # release name MUST be gitea-in-cluster (fullname = release name when it contains "gitea").
       releaseName: gitea-in-cluster
       # Typed values (not parameters): fsGroup must be an integer.
-      # The rootless image and configure-gitea run as UID 1000. Without
-      # fsGroup the RBD volume stays root-owned and init-directories fails
-      # with "mkdir: can't create directory '/data/git/': Permission denied".
-      # nonroot SCC allows fsGroup RunAsAny, so 1000 is accepted.
+      # The rootless image and configure-gitea run as UID 1000.
+      # nonroot allows that UID and fsGroup 1000. restricted-v2 does not,
+      # and without fsGroup the new RBD volume stays root-owned
+      # (init-directories: mkdir /data/git: Permission denied).
+      # extraDeploy is wave -1, after the chart Namespace (wave -100) and
+      # before the Deployment. Root only syncs this file, so the binding
+      # and the admin secret have to live here or the pod never starts.
       values: |
         podSecurityContext:
           fsGroup: 1000
+        extraDeploy:
+          - apiVersion: v1
+            kind: Secret
+            metadata:
+              name: gitea-admin-secret
+              namespace: vp-gitea
+              annotations:
+                argocd.argoproj.io/sync-wave: "-1"
+            type: Opaque
+            stringData:
+              username: gitea_admin
+              password: "Admin123!"
+          - apiVersion: rbac.authorization.k8s.io/v1
+            kind: RoleBinding
+            metadata:
+              name: gitea-default-nonroot
+              namespace: vp-gitea
+              annotations:
+                argocd.argoproj.io/sync-wave: "-1"
+            roleRef:
+              apiGroup: rbac.authorization.k8s.io
+              kind: ClusterRole
+              name: system:openshift:scc:nonroot
+            subjects:
+              - kind: ServiceAccount
+                name: default
+                namespace: vp-gitea
       parameters:
         - name: gitea.admin.existingSecret
           value: gitea-admin-secret

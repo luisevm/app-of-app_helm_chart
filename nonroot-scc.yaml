@@ -1,6 +1,7 @@
-# Lets the Gitea default ServiceAccount run as UID 1000.
-# The configure-gitea init container sets runAsUser: 1000, which the
-# namespace restricted-v2 SCC rejects.
+# Same RoleBinding the Helm release installs from gitea.yaml extraDeploy.
+# root does not sync this file. Kept so the binding can be applied by hand
+# if the Application is not used. The configure-gitea init container sets
+# runAsUser: 1000, which the namespace restricted-v2 SCC rejects.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:

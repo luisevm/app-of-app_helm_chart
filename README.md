@@ -9,21 +9,13 @@ gitea.yaml         # child Application, synced by root
 nonroot-scc.yaml   # SCC grant for the Gitea default ServiceAccount
 ```
 
-## Prerequisites (out of Git — contains credentials)
-```bash
-oc create namespace vp-gitea
-oc -n vp-gitea create secret generic gitea-admin-secret \
-  --from-literal=username=gitea_admin \
-  --from-literal=password='Admin123!'
-```
-(Keys `username`/`password` are what templates/gitea/deployment.yaml reads. Gitea rejects the name `admin` as reserved — the chart default is `gitea_admin`.)
-Use Sealed Secrets / External Secrets instead if you want this in Git.
+## What gitea.yaml installs besides the chart
+`root` syncs only `gitea.yaml`. These are Helm `extraDeploy` objects in that file (sync wave `-1`, before the pod):
 
-The `configure-gitea` init container runs as UID `1000`. The default `restricted-v2` SCC only allows the namespace UID range, so the pod stays forbidden. `nonroot-scc.yaml` binds the `default` ServiceAccount in `vp-gitea` to the `nonroot` SCC (`anyuid` also works, but it allows root). `gitea.yaml` sets `podSecurityContext.fsGroup: 1000` so that ServiceAccount can write the data volume:
+- Secret `gitea-admin-secret`, username `gitea_admin`, password `Admin123!`. Gitea rejects the name `admin`. Keys `username` and `password` are what the chart reads.
+- RoleBinding `gitea-default-nonroot`, so the `default` ServiceAccount can use the `nonroot` SCC. `configure-gitea` runs as UID `1000`, which `restricted-v2` rejects. `podSecurityContext.fsGroup: 1000` lets that user write the data volume.
 
-```bash
-oc apply -f nonroot-scc.yaml
-```
+`nonroot-scc.yaml` is the same RoleBinding. Applying it by hand is only needed when the Application is not used. The chart creates namespace `vp-gitea`.
 
 ## Fill placeholders
 ```bash
@@ -43,6 +35,17 @@ git push
 ## Deploy
 ```bash
 oc apply -f root-app.yaml
-oc -n openshift-gitops get applications
+oc -n openshift-gitops get applications.argoproj.io
 oc -n vp-gitea get route gitea-route
+```
+
+## Delete
+Delete `root` first. It owns `gitea-in-cluster`, and that Application owns the chart objects, including the cluster-scoped ConsoleLink `gitea-link`. Deleting the namespace while either Application still exists lets self-heal recreate it.
+
+The chart marks PVC `gitea-shared-storage` with `helm.sh/resource-policy: keep`, so Argo leaves it. Deleting namespace `vp-gitea` removes that PVC, Secret `gitea-admin-secret`, and RoleBinding `gitea-default-nonroot`. The storage class reclaim policy is `Delete`, so the bound volume is removed with the claim.
+
+```bash
+oc -n openshift-gitops delete applications.argoproj.io root --wait=true
+oc delete namespace vp-gitea --ignore-not-found --wait=true
+oc delete consolelink gitea-link --ignore-not-found
 ```
