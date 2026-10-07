@@ -1,8 +1,11 @@
 # Gitea (Validated Patterns chart) via Argo CD app-of-apps
 
+## Clone repo
+git clone https://github.com/luisevm/app-of-app_helm_chart.git
+
 ```
-bootstrap/root-app.yaml   # applied once, manually
-apps/gitea.yaml           # child Application, synced by root
+root-app.yaml   # applied once, manually
+gitea.yaml      # child Application, synced by root
 ```
 
 ## Prerequisites (out of Git — contains credentials)
@@ -25,11 +28,14 @@ sed -i -E "s#(https://gitea-route-vp-gitea\.apps\.)[^[:space:]]+#\1${CLUSTER_DOM
 echo "cluster domain: ${CLUSTER_DOMAIN}"
 ```
 
-Set `repoURL` in `root-app.yaml`, then push.
+## Update repo
+git add *
+git commit -m "c"
+git push
 
 ## Deploy
 ```bash
-oc apply -f bootstrap/root-app.yaml
+oc apply -f root-app.yaml
 oc -n openshift-gitops get applications
 oc -n vp-gitea get route gitea-route
 ```
