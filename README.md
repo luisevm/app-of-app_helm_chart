@@ -10,10 +10,11 @@ nonroot-scc.yaml   # SCC grant for the Gitea default ServiceAccount
 ```
 
 ## What gitea.yaml installs besides the chart
-`root` syncs only `gitea.yaml`. These are Helm `extraDeploy` objects in that file (sync wave `-1`, before the pod):
+`root` syncs only `gitea.yaml`. These are Helm `extraDeploy` objects in that file:
 
-- Secret `gitea-admin-secret`, username `gitea_admin`, password `Admin123!`. Gitea rejects the name `admin`. Keys `username` and `password` are what the chart reads.
-- RoleBinding `gitea-default-nonroot`, so the `default` ServiceAccount can use the `nonroot` SCC. `configure-gitea` runs as UID `1000`, which `restricted-v2` rejects. `podSecurityContext.fsGroup: 1000` lets that user write the data volume.
+- Role `gitea-argocd-secrets` (sync wave `-95`). The chart binds its admin Role at wave `-90` but creates that Role only at wave `0`, so the first sync cannot create Secrets and then waits on the Deployment forever.
+- Secret `gitea-admin-secret` (sync wave `-1`): username `gitea_admin`, password `Admin123!`. Gitea rejects the name `admin`.
+- RoleBinding `gitea-default-nonroot` (sync wave `-1`), so the `default` ServiceAccount can use the `nonroot` SCC. `configure-gitea` runs as UID `1000`, which `restricted-v2` rejects. `podSecurityContext.fsGroup: 1000` lets that user write the data volume.
 
 `nonroot-scc.yaml` is the same RoleBinding. Applying it by hand is only needed when the Application is not used. The chart creates namespace `vp-gitea`.
 

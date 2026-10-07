@@ -23,13 +23,41 @@ spec:
       # nonroot allows that UID and fsGroup 1000. restricted-v2 does not,
       # and without fsGroup the new RBD volume stays root-owned
       # (init-directories: mkdir /data/git: Permission denied).
-      # extraDeploy is wave -1, after the chart Namespace (wave -100) and
-      # before the Deployment. Root only syncs this file, so the binding
-      # and the admin secret have to live here or the pod never starts.
+      # The chart RoleBinding is sync wave -90, but its Role is wave 0.
+      # Argo then creates Secrets in wave 0 before that Role exists, the
+      # create is forbidden, and the sync waits forever on the Deployment.
+      # extraDeploy therefore creates a secrets Role at wave -95 (after the
+      # Namespace at -100), then the SCC binding and admin secret at -1.
       values: |
         podSecurityContext:
           fsGroup: 1000
         extraDeploy:
+          - apiVersion: rbac.authorization.k8s.io/v1
+            kind: Role
+            metadata:
+              name: gitea-argocd-secrets
+              namespace: vp-gitea
+              annotations:
+                argocd.argoproj.io/sync-wave: "-95"
+            rules:
+              - apiGroups: [""]
+                resources: ["secrets"]
+                verbs: ["*"]
+          - apiVersion: rbac.authorization.k8s.io/v1
+            kind: RoleBinding
+            metadata:
+              name: gitea-argocd-secrets
+              namespace: vp-gitea
+              annotations:
+                argocd.argoproj.io/sync-wave: "-95"
+            roleRef:
+              apiGroup: rbac.authorization.k8s.io
+              kind: Role
+              name: gitea-argocd-secrets
+            subjects:
+              - kind: ServiceAccount
+                name: openshift-gitops-argocd-application-controller
+                namespace: openshift-gitops
           - apiVersion: v1
             kind: Secret
             metadata:
