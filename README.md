@@ -6,7 +6,6 @@ git clone https://github.com/luisevm/app-of-app_helm_chart.git
 ```
 root-app.yaml      # applied once, manually
 gitea.yaml         # child Application, synced by root
-nonroot-scc.yaml   # SCC grant for the Gitea default ServiceAccount
 ```
 
 ## What gitea.yaml installs besides the chart
@@ -16,7 +15,7 @@ nonroot-scc.yaml   # SCC grant for the Gitea default ServiceAccount
 - Secret `gitea-admin-secret` (sync wave `-1`): username `gitea_admin`, password `Admin123!`. Gitea rejects the name `admin`.
 - RoleBinding `gitea-default-nonroot` (sync wave `-1`), so the `default` ServiceAccount can use the `nonroot` SCC. `configure-gitea` runs as UID `1000`, which `restricted-v2` rejects. `podSecurityContext.fsGroup: 1000` lets that user write the data volume.
 
-`nonroot-scc.yaml` is the same RoleBinding. Applying it by hand is only needed when the Application is not used. The chart creates namespace `vp-gitea`.
+The chart creates namespace `vp-gitea`.
 
 ## Fill placeholders
 ```bash
