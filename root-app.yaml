@@ -1,6 +1,6 @@
 # Parent ("root") Application of the app-of-apps pattern.
 # Apply once by hand:  oc apply -f root-app.yaml
-# It renders every manifest under apps/ (child Application CRs) from your Git repo.
+# It renders gitea.yaml from the root of the Git repo.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -13,9 +13,10 @@ spec:
   source:
     repoURL: https://github.com/luisevm/app-of-app_helm_chart.git     # <-- CHANGE: <repo> = repository name under luisevm
     targetRevision: main                               # <-- CHANGE if needed
-    path: apps
+    path: .
     directory:
-      recurse: true
+      recurse: false
+      include: gitea.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: openshift-gitops        # child Application CRs live in the Argo CD namespace

@@ -4,8 +4,9 @@
 git clone https://github.com/luisevm/app-of-app_helm_chart.git
 
 ```
-root-app.yaml   # applied once, manually
-gitea.yaml      # child Application, synced by root
+root-app.yaml      # applied once, manually
+gitea.yaml         # child Application, synced by root
+nonroot-scc.yaml   # SCC grant for the Gitea default ServiceAccount
 ```
 
 ## Prerequisites (out of Git — contains credentials)
@@ -17,6 +18,12 @@ oc -n vp-gitea create secret generic gitea-admin-secret \
 ```
 (Keys `username`/`password` are what templates/gitea/deployment.yaml reads.)
 Use Sealed Secrets / External Secrets instead if you want this in Git.
+
+The `configure-gitea` init container runs as UID `1000`. The default `restricted-v2` SCC only allows the namespace UID range, so the pod stays forbidden. `nonroot-scc.yaml` binds the `default` ServiceAccount in `vp-gitea` to the `nonroot` SCC (`anyuid` also works, but it allows root):
+
+```bash
+oc apply -f nonroot-scc.yaml
+```
 
 ## Fill placeholders
 ```bash

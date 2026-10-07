@@ -1,0 +1,16 @@
+# Lets the Gitea default ServiceAccount run as UID 1000.
+# The configure-gitea init container sets runAsUser: 1000, which the
+# namespace restricted-v2 SCC rejects.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitea-default-nonroot
+  namespace: vp-gitea
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:nonroot
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: vp-gitea
