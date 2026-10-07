@@ -18,6 +18,14 @@ spec:
       # The chart's Route hardcodes service "gitea-in-cluster-http", so the
       # release name MUST be gitea-in-cluster (fullname = release name when it contains "gitea").
       releaseName: gitea-in-cluster
+      # Typed values (not parameters): fsGroup must be an integer.
+      # The rootless image and configure-gitea run as UID 1000. Without
+      # fsGroup the RBD volume stays root-owned and init-directories fails
+      # with "mkdir: can't create directory '/data/git/': Permission denied".
+      # nonroot SCC allows fsGroup RunAsAny, so 1000 is accepted.
+      values: |
+        podSecurityContext:
+          fsGroup: 1000
       parameters:
         - name: gitea.admin.existingSecret
           value: gitea-admin-secret

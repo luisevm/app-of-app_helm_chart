@@ -13,13 +13,13 @@ nonroot-scc.yaml   # SCC grant for the Gitea default ServiceAccount
 ```bash
 oc create namespace vp-gitea
 oc -n vp-gitea create secret generic gitea-admin-secret \
-  --from-literal=username=admin \
+  --from-literal=username=gitea_admin \
   --from-literal=password='Admin123!'
 ```
-(Keys `username`/`password` are what templates/gitea/deployment.yaml reads.)
+(Keys `username`/`password` are what templates/gitea/deployment.yaml reads. Gitea rejects the name `admin` as reserved — the chart default is `gitea_admin`.)
 Use Sealed Secrets / External Secrets instead if you want this in Git.
 
-The `configure-gitea` init container runs as UID `1000`. The default `restricted-v2` SCC only allows the namespace UID range, so the pod stays forbidden. `nonroot-scc.yaml` binds the `default` ServiceAccount in `vp-gitea` to the `nonroot` SCC (`anyuid` also works, but it allows root):
+The `configure-gitea` init container runs as UID `1000`. The default `restricted-v2` SCC only allows the namespace UID range, so the pod stays forbidden. `nonroot-scc.yaml` binds the `default` ServiceAccount in `vp-gitea` to the `nonroot` SCC (`anyuid` also works, but it allows root). `gitea.yaml` sets `podSecurityContext.fsGroup: 1000` so that ServiceAccount can write the data volume:
 
 ```bash
 oc apply -f nonroot-scc.yaml
